@@ -21,6 +21,7 @@ const TimeBlock = styled.div`
   top: 0;
   bottom: 0;
   transition: all ease 0.3s;
+  ${(props) => props.isDragging ? 'will-change: width, left' : ''}
 `;
 
 const Handle = styled.div`
@@ -35,63 +36,70 @@ const Handle = styled.div`
   cursor: ew-resize;
 `;
 
+const TimeLabel = styled.div`
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 25px;
+`;
+
 function App() {
   const [from, setFrom] = useState(1);
   const [to, setTo] = useState(15);
+
+  const [currentFrom, setCurrentFrom] = useState(from);
+  const [currentTo, setCurrentTo] = useState(to);
+
+  const [isDragging, setDragging] = useState(false);
 
   useEffect(() => {
     console.log('from: ', from, ' to: ', to);
   }, [to]);
 
   const blockRef = useRef(null);
-  const initialX = useRef(null);
+  const [xStart, setXStart] = useState(null);
 
   const timePeriod = to - from;
-  const pixelStep = blockRef.current && (blockRef.current.clientWidth / timePeriod);
 
   const handleRightDragStart = useCallback((e) => {
-    initialX.current = e.clientX;
+    setDragging(true);
+    setXStart(e.clientX);
   }, [from, to]);
 
-  const lastUpdated = new Date().getTime();
-
-  const handleDragContinue = useCallback((e) => {
-    console.log('drag continue');
-    if (new Date().getTime() - lastUpdated > 300) {
-      handleRightDragEnd(e);
-      handleRightDragStart(e);
-    }
-  }, [from ,to]);
-
-  const handleRightDragEnd = useCallback((e) => {
-    const xDiff = e.clientX - initialX.current;
-    const pixelStep = blockRef.current && (blockRef.current.clientWidth / timePeriod);
+  const handleRightDragContinue = useCallback((e) => {
+    const xDiff = e.clientX - xStart;
+    // const pixelStep = blockRef.current && (blockRef.current.clientWidth / timePeriod);
+    const pixelStep = 50;
     const increase = Math.floor(xDiff / pixelStep);
-
-    console.log(blockRef.current.clientWidth, timePeriod, pixelStep, xDiff, increase);
-
-    // const increaseProportion = normalizeResizeProportion(xDiff / timelineWidth, 0.20);
-
-    // console.log('width: ', timelineWidth);
-    // console.log('xdiff: ', xDiff);
-    //
-    // console.log(`Changed by ${Math.floor(increaseProportion * 100)}%`);
 
     if (to + increase - from > 24) {
       console.error("can't be longer than 24 hours")
     } else if (to + increase - from < 1) {
       console.error("can't be less than 1 hour")
     } else {
-      setTo(to + increase);
+      if (increase > 0) {
+        setCurrentTo(to + increase);
+      }
+      // setCurrentTo(currentTo + increase);
+      // setXStart(e.clientX);
     }
-  }, [from, to, pixelStep]);
+  }, [currentTo]);
+
+  const handleRightDragEnd = useCallback(() => {
+    // commit phase
+    setDragging(false);
+    setTo(currentTo);
+  }, [currentTo]);
 
   return (
     <div className="App">
       <Container>
-        <TimeBlock from={from} to={to} ref={blockRef}>
+        <TimeBlock from={isDragging ? currentFrom : from} to={isDragging ? currentTo : to} ref={blockRef} isDragging={isDragging}>
           <Handle draggable left />
-          <Handle draggable right onDragStart={handleRightDragStart} onDragEnd={handleRightDragEnd} />
+          <TimeLabel>{isDragging ? currentFrom : from} - {isDragging ? currentTo : to}</TimeLabel>
+          <Handle draggable right onDragStart={handleRightDragStart} onDrag={handleRightDragContinue} onDragEnd={handleRightDragEnd} />
         </TimeBlock>
       </Container>
     </div>
