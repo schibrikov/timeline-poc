@@ -1,6 +1,7 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
 import './App.css';
+import { useShrinkExtend } from './useShrinkExpand';
 
 const Container = styled.div`
   height: 50px;
@@ -10,18 +11,21 @@ const Container = styled.div`
   margin: 200px 0 3px;
 `;
 
-const TimeBlock = styled.div`
+const TimeBlock = styled.div.attrs(({to, from, isDragging}) => ({
+  style: {
+    width: (to - from) * 50 + 'px',
+    left: from * 50 + 'px',
+    willChange: isDragging ? 'width, left' : 'auto',
+  },
+}))`
   background: #5C6BC0;
   height: 100%;
-  width: ${(props) => `${(props.to - props.from) * 50}px`};
   border: 3px solid #2736c3;
   position: absolute;
   border-radius: 5px;
-  left: ${(props) => `${props.from * 50}px`};
   top: 0;
   bottom: 0;
-  transition: all ease 0.3s;
-  ${(props) => props.isDragging ? 'will-change: width, left' : ''}
+  transition: all ease 0.1s;
 `;
 
 const Handle = styled.div`
@@ -49,57 +53,27 @@ function App() {
   const [from, setFrom] = useState(1);
   const [to, setTo] = useState(15);
 
-  const [currentFrom, setCurrentFrom] = useState(from);
-  const [currentTo, setCurrentTo] = useState(to);
+  const [curFrom, fromDragEvents, isFromDragging] = useShrinkExtend(from, setFrom, 50);
+  const validateTo = useCallback((newValue) => {
+    const period = newValue - curFrom;
+    return period > 0 && period < 24;
+  }, []);
+  const [curTo, toDragEvents, isToDragging] = useShrinkExtend(to, setTo, 50, validateTo);
 
-  const [isDragging, setDragging] = useState(false);
-
-  useEffect(() => {
-    console.log('from: ', from, ' to: ', to);
-  }, [to]);
-
-  const blockRef = useRef(null);
-  const [xStart, setXStart] = useState(null);
-
-  const timePeriod = to - from;
-
-  const handleRightDragStart = useCallback((e) => {
-    setDragging(true);
-    setXStart(e.clientX);
-  }, [from, to]);
-
-  const handleRightDragContinue = useCallback((e) => {
-    const xDiff = e.clientX - xStart;
-    // const pixelStep = blockRef.current && (blockRef.current.clientWidth / timePeriod);
-    const pixelStep = 50;
-    const increase = Math.floor(xDiff / pixelStep);
-
-    if (to + increase - from > 24) {
-      console.error("can't be longer than 24 hours")
-    } else if (to + increase - from < 1) {
-      console.error("can't be less than 1 hour")
-    } else {
-      if (increase > 0) {
-        setCurrentTo(to + increase);
-      }
-      // setCurrentTo(currentTo + increase);
-      // setXStart(e.clientX);
-    }
-  }, [currentTo]);
-
-  const handleRightDragEnd = useCallback(() => {
-    // commit phase
-    setDragging(false);
-    setTo(currentTo);
-  }, [currentTo]);
+  // If we simultaneously run events for left and right handles, we get movement event
+  const combinedEvents = useMemo(() => ({
+    onDrag: (e) => { fromDragEvents.onDrag(e); toDragEvents.onDrag(e); },
+    onDragStart: (e) => { fromDragEvents.onDragStart(e); toDragEvents.onDragStart(e); },
+    onDragEnd: (e) => { fromDragEvents.onDragEnd(e); toDragEvents.onDragEnd(e); }
+  }), [fromDragEvents, toDragEvents]);
 
   return (
     <div className="App">
       <Container>
-        <TimeBlock from={isDragging ? currentFrom : from} to={isDragging ? currentTo : to} ref={blockRef} isDragging={isDragging}>
-          <Handle draggable left />
-          <TimeLabel>{isDragging ? currentFrom : from} - {isDragging ? currentTo : to}</TimeLabel>
-          <Handle draggable right onDragStart={handleRightDragStart} onDrag={handleRightDragContinue} onDragEnd={handleRightDragEnd} />
+        <TimeBlock from={curFrom} to={curTo} isDragging={isFromDragging || isToDragging}>
+          <Handle draggable left {...fromDragEvents} />
+          <TimeLabel draggable {...combinedEvents}>{Math.round(curFrom)} - {Math.round(curTo)}</TimeLabel>
+          <Handle draggable right {...toDragEvents} />
         </TimeBlock>
       </Container>
     </div>
