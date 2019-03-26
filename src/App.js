@@ -1,83 +1,100 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React from 'react';
+import { observable } from 'mobx';
+import { observer } from 'mobx-react-lite';
 import styled from 'styled-components';
 import './App.css';
-import { useShrinkExtend } from './useShrinkExpand';
+import { TimeBlock } from './TimeBlock';
 
-const Container = styled.div`
-  height: 50px;
-  width: 100%;
+const TimeLine = styled.div`
+  height: 30px;
+  width: 960px;
   background: #E8EAF6;
   position: relative;
-  margin: 200px 0 3px;
 `;
 
-const TimeBlock = styled.div.attrs(({to, from, isDragging}) => ({
-  style: {
-    width: (to - from) * 50 + 'px',
-    left: from * 50 + 'px',
-    willChange: isDragging ? 'width, left' : 'auto',
+const TimeScale = styled.div`
+  display: flex;
+  flex-wrap: nowrap;
+`;
+
+const TimeScalePoint = styled.div`
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: solid black;
+  border-width: 0 1px 0 0;
+`;
+
+function createShift(from, to) {
+  return observable({
+    from,
+    to
+  });
+}
+
+const employees = observable([
+  {
+    name: 'John',
+    shifts: [createShift(0,5), createShift(5, 10)]
   },
-}))`
-  background: #5C6BC0;
-  height: 100%;
-  border: 3px solid #2736c3;
-  position: absolute;
-  border-radius: 5px;
-  top: 0;
-  bottom: 0;
-  transition: all ease 0.1s;
-`;
+  {
+    name: 'Robert',
+    shifts: [createShift(0,2), createShift(10, 15)]
+  },
+  {
+    name: 'Daniel',
+    shifts: []
+  }
+]);
 
-const Handle = styled.div`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  height: 100%;
-  width: 10px;
-  ${(props) => props.left ? 'left: 0' : ''}
-  ${(props) => props.right ? 'right: 0' : ''}
-  background: #feac2d;
-  cursor: ew-resize;
-`;
-
-const TimeLabel = styled.div`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: white;
-  font-size: 25px;
-`;
+const hours = [];
+for (let i = 0; i < 24; i++) {
+  hours.push(i);
+}
 
 function App() {
-  const [from, setFrom] = useState(1);
-  const [to, setTo] = useState(15);
-
-  const [curFrom, fromDragEvents, isFromDragging] = useShrinkExtend(from, setFrom, 50);
-  const validateTo = useCallback((newValue) => {
-    const period = newValue - curFrom;
-    return period > 0 && period < 24;
-  }, []);
-  const [curTo, toDragEvents, isToDragging] = useShrinkExtend(to, setTo, 50, validateTo);
-
-  // If we simultaneously run events for left and right handles, we get movement event
-  const combinedEvents = useMemo(() => ({
-    onDrag: (e) => { fromDragEvents.onDrag(e); toDragEvents.onDrag(e); },
-    onDragStart: (e) => { fromDragEvents.onDragStart(e); toDragEvents.onDragStart(e); },
-    onDragEnd: (e) => { fromDragEvents.onDragEnd(e); toDragEvents.onDragEnd(e); }
-  }), [fromDragEvents, toDragEvents]);
-
   return (
     <div className="App">
-      <Container>
-        <TimeBlock from={curFrom} to={curTo} isDragging={isFromDragging || isToDragging}>
-          <Handle draggable left {...fromDragEvents} />
-          <TimeLabel draggable {...combinedEvents}>{Math.round(curFrom)} - {Math.round(curTo)}</TimeLabel>
-          <Handle draggable right {...toDragEvents} />
-        </TimeBlock>
-      </Container>
+      <table>
+        <thead>
+        <tr>
+          <th>User</th>
+          <th>
+            <TimeScale>
+              {hours.map(hour => <TimeScalePoint>{hour}</TimeScalePoint>)}
+            </TimeScale>
+          </th>
+          <th>G</th>
+        </tr>
+        </thead>
+        <tbody>
+        {
+          employees.map(employee => (
+            <tr>
+              <td>
+                {employee.name}
+              </td>
+              <td>
+                <TimeLine>
+                  {
+                    employee.shifts.map((shift) => (
+                      <TimeBlock to={shift.to} from={shift.from} setTo={v => shift.to = v} setFrom={(v) => shift.from = v} />
+                    ))
+                  }
+                </TimeLine>
+              </td>
+              <td>
+                {employee.shifts.reduce((acc, shift) => acc + (shift.to - shift.from), 0)}
+              </td>
+            </tr>
+          ))
+        }
+        </tbody>
+      </table>
     </div>
   );
 }
 
-export default App;
+export default observer(App);
