@@ -1,0 +1,36 @@
+.handle {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    height: 100%;
+    width: 3px;
+    background: rgba(0,0,0,0.22);
+    cursor: ew-resize;
+}
+
+.left {
+    left: 0;
+}
+
+.right {
+    right: 0;
+}
+
+.period {
+    height: 100%;
+    border: 1px solid rgba(0,0,0,0.22);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    transition: all ease 0.1s;
+}
+
+.moveHandle {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    cursor: pointer;
+    transition: 100ms all ease;
+}
