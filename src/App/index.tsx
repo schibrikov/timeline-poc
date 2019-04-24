@@ -1,74 +1,13 @@
-import React, {useRef, useState, useImperativeHandle, RefObject} from 'react';
-import {autorun, IObservableArray, observable} from 'mobx';
-import { observer } from 'mobx-react-lite';
-import { fromPromise } from 'mobx-utils';
+import React, { useState, useCallback } from 'react';
+import Measure from 'react-measure';
+import { observer, useObserver } from 'mobx-react-lite';
 import styles from './index.module.css';
 import { DatePicker } from '../DatePicker';
-import { getDataForDate } from '../service';
 import { TimeBlock } from '../TimeBlock';
-import {Employee, PeriodType} from "../models";
+import {Employee, colorMap, Period} from '../models';
+import { state } from '../store';
 
-const employees = fromPromise(
-  getDataForDate(new Date())
-    .then((data) => JSON.parse(data))
-    .then((data: Employee[]) => observable(data))
-);
-
-const state = observable({
-  currentDate: new Date()
-});
-
-autorun(() => {
-  if (!employees.value) return;
-
-  const timetable: IObservableArray<Employee> = employees.value;
-
-  console.group();
-  timetable.forEach((emp) => {
-    const workingPeriod = emp.periods.find(per => per.type === 'booked');
-
-    if (!workingPeriod) {
-        console.log(`${emp.name} doesn't have booked periods`);
-        return;
-    }
-
-    const workDayStart = new Date(workingPeriod.from);
-    const workDayEnd = new Date(workingPeriod.to);
-
-    console.log(
-      `${emp.name} is working from ${workDayStart.getHours()}:${workDayStart.getMinutes()} to ${workDayEnd.getHours()}:${workDayEnd.getMinutes()}`
-    );
-  });
-  console.groupEnd();
-});
-
-interface TimeLineProps {
-  children: JSX.Element[]
-}
-
-const TimeLine = React.forwardRef<HTMLDivElement, TimeLineProps>((props, ref) =>
-  <div ref={ref} className={styles.timeline} {...props} />
-);
-
-const TimeScale = ({ ...props }) => <div className={styles.timescale} {...props} />;
-
-const TimeScalePoint = ({ ...props }) => <div className={styles.timescale__point} {...props} />
-
-export const colorMap: Record<PeriodType | "break", string> = {
-  booked: '#82C972',
-  break: 'rgba(199,199,199,0.64)',
-  available: '#9370db',
-  unavailable: '#e0e0e0',
-  "booked-on-other-schedule": "#000",
-  unpublished: "#000",
-};
-
-const hours: number[] = [];
-for (let i = 0; i < 24; i++) {
-  hours.push(i);
-}
-
-const startOfToday: number = new Date().setHours(0, 0,0,0);
+const startOfToday: number = new Date().setHours(0, 0, 0, 0);
 
 function getEmployeeTotalHours(employee: Employee) {
   const booked = employee.periods.filter(period => period.type === 'booked');
@@ -84,72 +23,106 @@ function getEmployeeTotalHours(employee: Employee) {
   return `${hours} hours ${minutes} minutes`;
 }
 
-function getUnitWidthForRef(ref: HTMLDivElement | null) {
-  if (ref) {
-    return ref.clientWidth / 24 / 60 / 60 / 1000;
-  } else {
-    // Ref isn't initialised
-    return 0;
+function getUnitWidthForContainerWidth(totalWidth: number) {
+  return totalWidth / 24 / 60 / 60 / 1000;
+}
+
+const TimeScale = React.memo(function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
+  const measure = useCallback((e) => {
+    if (e && e.entry) {
+      setUnitWidth(getUnitWidthForContainerWidth(
+        e.entry.width
+      ))
+    }
+  }, []);
+
+  const hours: string[] = [];
+  for (let i = 0; i < 24; i++) {
+    hours.push(i.toString().padStart(2, '0'));
   }
+
+  return (
+    <Measure onResize={measure}>
+      {({ measureRef }) => (
+        <div className={styles.timescale} ref={measureRef}>
+          {hours.map(hour => (
+            <div className={styles.timescale__point} key={hour}>
+              {hour}
+            </div>
+          ))}
+        </div>
+      )}
+    </Measure>
+  )
+});
+
+function EmployeePeriods({ periods, unitWidth }: { periods: Period[], unitWidth: number }): JSX.Element {
+  return useObserver(() =>
+      <>
+        {periods.map(period => (
+            <TimeBlock
+                key={period.id}
+                period={period}
+                startOfDay={startOfToday}
+                step={1000 * 60 * 15}
+                unitWidth={unitWidth}
+            />
+        ))}
+      </>
+  );
+}
+
+function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: number }) {
+  return useObserver(() =>
+    <tr>
+      <td className={styles.table__user}>
+        <a className={styles.table__userlink} href="http://yandex.ru">
+          {employee.name}
+        </a>
+      </td>
+      <td>
+        <div className={styles.timeline}>
+          <EmployeePeriods periods={employee.periods} unitWidth={unitWidth} />
+        </div>
+      </td>
+      <td>{getEmployeeTotalHours(employee)}</td>
+    </tr>
+  )
+}
+
+function Employees({ employees, unitWidth }: { employees: Employee[], unitWidth: number }) {
+  return useObserver(() =>
+    <>
+      {employees.map(employee => (
+        <EmployeeRow key={employee.id} employee={employee} unitWidth={unitWidth} />
+      ))}
+    </>
+  )
 }
 
 function App() {
   const [unitWidth, setUnitWidth] = useState(0);
-  const timelineRef = useRef<HTMLDivElement>(null);
-
-  // @ts-ignore
-  useImperativeHandle(timelineRef, () => {
-    setUnitWidth(getUnitWidthForRef(timelineRef.current));
-  }, [timelineRef.current]);
 
   return (
     <div>
-      <DatePicker value={state.currentDate} setValue={(v: Date) => state.currentDate = v} />
+      <DatePicker
+        value={state.currentDate}
+        setValue={(v: Date) => (state.currentDate = v)}
+      />
       <table className={styles.table}>
         <thead className={styles.table__head}>
-        <tr>
-          <th>User</th>
-          <th>
-            <TimeScale>
-              {hours.map(hour => <TimeScalePoint key={hour}>{hour.toString().padStart(2, '0')}</TimeScalePoint>)}
-            </TimeScale>
-          </th>
-          <th>G</th>
-        </tr>
+          <tr>
+            <th>User</th>
+            <th>
+              <TimeScale setUnitWidth={setUnitWidth} />
+            </th>
+            <th>G</th>
+          </tr>
         </thead>
         <tbody>
-        {
-          employees.state === 'fulfilled' && employees.value.map(employee => (
-            <tr key={employee.id}>
-              <td className={styles.table__user}>
-                <a className={styles.table__userlink} href="http://yandex.ru">{employee.name}</a>
-              </td>
-              <td>
-                <TimeLine ref={timelineRef}>
-                  {
-                    employee.periods.map((period) => (
-                      <TimeBlock
-                        key={period.id}
-                        to={period.to - startOfToday}
-                        from={period.from - startOfToday}
-                        setTo={v => period.to = v + startOfToday}
-                        setFrom={v => period.from = v + startOfToday}
-                        step={1000 * 60 * 15}
-                        color={colorMap[period.type]}
-                        editable={period.editable}
-                        break={period.break && { from: period.break.from - period.from, to: period.break.to - period.from }}
-                        unitWidth={unitWidth}
-                      />
-                    ))
-                  }
-                </TimeLine>
-              </td>
-              <td>
-                {getEmployeeTotalHours(employee)}
-              </td>
-            </tr>
-          ))
-        }
+          {state.employees.state === 'fulfilled' &&
+            <Employees employees={state.employees.value} unitWidth={unitWidth}/>
+          }
         </tbody>
       </table>
     </div>

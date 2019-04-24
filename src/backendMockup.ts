@@ -1,7 +1,7 @@
-import {Employee} from "./models";
+import { Employee } from './models';
 
 interface Storage {
-  employees: Employee[]
+  employees: Employee[];
 }
 
 const storage: Storage = {
@@ -12,15 +12,15 @@ const storage: Storage = {
       periods: [
         {
           id: 1,
-          type: "booked",
+          type: 'booked',
           editable: true,
-          from: new Date().setHours(10, 0),
-          to: new Date().setHours(19, 0),
+          from: new Date().setHours(9, 0),
+          to: new Date().setHours(18, 0),
           break: {
-            from: new Date().setHours(14, 0),
-            to: new Date().setHours(15, 0),
+            from: new Date().setHours(13, 0),
+            to: new Date().setHours(14, 0)
           }
-        },
+        }
       ]
     },
     {
@@ -29,15 +29,15 @@ const storage: Storage = {
       periods: [
         {
           id: 3,
-          type: "booked",
+          type: 'booked',
           editable: true,
           from: new Date().setHours(10, 0),
           to: new Date().setHours(19, 0),
           break: {
             from: new Date().setHours(14, 0),
-            to: new Date().setHours(15, 0),
+            to: new Date().setHours(15, 0)
           }
-        },
+        }
       ]
     },
     {
@@ -46,24 +46,24 @@ const storage: Storage = {
       periods: [
         {
           id: 5,
-          type: "booked",
+          type: 'booked',
           editable: true,
           from: new Date().setHours(10, 0),
           to: new Date().setHours(19, 0),
           break: {
             from: new Date().setHours(14, 0),
-            to: new Date().setHours(15, 0),
+            to: new Date().setHours(15, 0)
           }
-        },
+        }
       ]
     }
-  ],
+  ]
 };
 
 export function getDataForDate(date: Date): Promise<string> {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve(JSON.stringify(storage.employees))
+      resolve(JSON.stringify(storage.employees));
     }, 200);
-  })
+  });
 }

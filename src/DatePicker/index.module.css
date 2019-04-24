@@ -1,35 +1,37 @@
 .container {
-    display: flex;
-    height: 30px;
-    margin-top: 5px;
+  display: flex;
+  height: 30px;
+  margin-top: 5px;
 }
 
 .previousBtn {
-    width: 30px;
-    background: url(https://test.fastpool.net/assets/images/icons/fa-arrow-left.svg) no-repeat center;
-    border: 0;
-    cursor: pointer;
+  width: 30px;
+  background: url(https://test.fastpool.net/assets/images/icons/fa-arrow-left.svg)
+    no-repeat center;
+  border: 0;
+  cursor: pointer;
 }
 
 .dateInputBtn {
-    background: #4c84c2;
-    border: 0;
-    color: white;
-    margin: 0 2px;
-    border-radius: 2px 2px 0 0;
+  background: #4c84c2;
+  border: 0;
+  color: white;
+  margin: 0 2px;
+  border-radius: 2px 2px 0 0;
 }
 
 .todayBtn {
-    background: #4c84c2;
-    border: 0;
-    color: white;
-    border-radius: 2px 2px 0 0;
-    cursor: pointer;
+  background: #4c84c2;
+  border: 0;
+  color: white;
+  border-radius: 2px 2px 0 0;
+  cursor: pointer;
 }
 
 .nextBtn {
-    width: 30px;
-    background: url(https://test.fastpool.net/assets/images/icons/fa-arrow-right.svg) no-repeat center;
-    border: 0;
-    cursor: pointer;
+  width: 30px;
+  background: url(https://test.fastpool.net/assets/images/icons/fa-arrow-right.svg)
+    no-repeat center;
+  border: 0;
+  cursor: pointer;
 }

@@ -4,7 +4,10 @@ import styles from './index.module.css';
 function formatToInput(date: Date) {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const day = date.getDate().toString().padStart(2, '0');
+  const day = date
+    .getDate()
+    .toString()
+    .padStart(2, '0');
 
   return `${year}-${month}-${day}`;
 }
@@ -17,15 +20,12 @@ function getDateWithDaysShift(date: Date, shift: number) {
 }
 
 interface DatePickerProps {
-    value: Date,
-    setValue: (arg: Date) => void,
+  value: Date;
+  setValue: (arg: Date) => void;
 }
 
 export function DatePicker(props: DatePickerProps) {
-  const {
-    value,
-    setValue
-  } = props;
+  const { value, setValue } = props;
 
   return (
     <div className={styles.container}>
@@ -55,5 +55,5 @@ export function DatePicker(props: DatePickerProps) {
         onClick={() => setValue(getDateWithDaysShift(value, 1))}
       />
     </div>
-  )
+  );
 }

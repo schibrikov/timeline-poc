@@ -1,12 +1,22 @@
 import { useRef, useState, useMemo, DragEvent } from 'react';
 
 const emptyImage = new Image();
-emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+emptyImage.src =
+  'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
 
-const throttleLevel = 10;
+const throttleFreq = 50;
 
-function roundToStep(value: number, step: number) {
-  return Math.round(value / step) * step;
+function throttle(func: Function, freq: number) {
+  let previousCallTime = 0;
+
+  return function() {
+    const currentTime = new Date().getTime();
+
+    if (currentTime - previousCallTime > freq) {
+      previousCallTime = currentTime;
+      func.apply(null, arguments);
+    }
+  };
 }
 
 type Validator = (value: number) => boolean;
@@ -14,13 +24,30 @@ type Validator = (value: number) => boolean;
 export type DragHandler = (e: DragEvent) => void;
 
 export interface DragHandlers {
-  onDrag: DragHandler,
-  onDragStart: DragHandler,
-  onDragEnd: DragHandler
+  onDrag: DragHandler;
+  onDragStart: DragHandler;
+  onDragEnd: DragHandler;
 }
 
-export function useShrinkExtend(value: number, setValue: (arg: number) => void, pixelStep: number, valueStep: number = 1, isValid: Validator = () => true)
-    : [number, DragHandlers, boolean] {
+export interface ShrinkExtendConfig {
+  pixelStep: number;
+  normalize?: (arg: number) => number;
+  validate?: Validator;
+  min?: number;
+  max?: number;
+}
+
+export function useShrinkExtend(
+  value: number,
+  setValue: (arg: number) => void,
+  config: ShrinkExtendConfig
+): [number, DragHandlers, boolean] {
+  const {
+    pixelStep = 1,
+    normalize = (n: number) => n,
+    validate = () => true
+  } = config;
+
   const [isDragging, setDragging] = useState<boolean>(false);
   const [curValue, setCurValue] = useState<number>(value);
   const dragStartX = useRef<number | null>(null);
@@ -36,22 +63,16 @@ export function useShrinkExtend(value: number, setValue: (arg: number) => void, 
       setCurValue(value);
     };
 
-    let throttleCounter = 0;
-
-    const onDrag = (e: DragEvent) => {
+    const onDrag = throttle((e: DragEvent) => {
       if (dragStartX.current === null) {
         return null;
       }
 
-      if (throttleCounter ++ > throttleLevel) {
-        throttleCounter = 0;
+      const xDiff = e.clientX - dragStartX.current;
+      const unitsDiff = xDiff / pixelStep;
 
-        const xDiff = e.clientX - dragStartX.current;
-        const unitsDiff = xDiff / pixelStep;
-
-        setCurValue(value + unitsDiff);
-      }
-    };
+      setCurValue(normalize(value + unitsDiff));
+    }, throttleFreq);
 
     const onDragEnd = (e: DragEvent) => {
       if (dragStartX.current === null) {
@@ -63,9 +84,9 @@ export function useShrinkExtend(value: number, setValue: (arg: number) => void, 
       const xDiff = e.clientX - dragStartX.current;
       const unitsDiff = Math.round(xDiff / pixelStep);
 
-      const newValue = roundToStep(value + unitsDiff, valueStep);
+      const newValue = normalize(value + unitsDiff);
 
-      if (isValid(newValue)) {
+      if (validate(newValue)) {
         setValue(newValue);
         setCurValue(newValue);
       } else {
@@ -78,7 +99,6 @@ export function useShrinkExtend(value: number, setValue: (arg: number) => void, 
       onDragStart,
       onDragEnd
     };
-
   }, [value, pixelStep]);
 
   return [curValue, dragEvents, isDragging];
