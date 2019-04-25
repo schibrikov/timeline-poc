@@ -30,6 +30,6 @@ export const colorMap: Record<PeriodType | 'break', string> = {
   break: 'rgba(199,199,199,0.64)',
   available: '#9370db',
   unavailable: '#e0e0e0',
-  'booked-on-other-schedule': '#000',
-  unpublished: '#000'
+  'booked-on-other-schedule': '#a0f48e',
+  unpublished: '#3EB5F1'
 };

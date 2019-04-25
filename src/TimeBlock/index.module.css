@@ -22,7 +22,6 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  transition: all ease 0.1s;
 }
 
 .moveHandle {

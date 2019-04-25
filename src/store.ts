@@ -1,15 +1,24 @@
 import { autorun, IObservableArray, observable } from 'mobx';
-import { fromPromise } from 'mobx-utils';
+import { fromPromise, IPromiseBasedObservable } from 'mobx-utils';
 import { getDataForDate } from './backendMockup';
 import { Employee } from './models';
 
-export const state = observable({
+function fetchUpdatedObservableEmployees(date: Date) {
+  return getDataForDate(new Date())
+    .then(data => JSON.parse(data))
+    .then((data: Employee[]) => observable(data));
+}
+
+export const state = observable<{
+  currentDate: Date,
+  employees: IPromiseBasedObservable<IObservableArray<Employee>>
+}>({
   currentDate: new Date(),
-  employees: fromPromise(
-    getDataForDate(new Date())
-      .then(data => JSON.parse(data))
-      .then((data: Employee[]) => observable(data))
-  )
+  employees: fromPromise(fetchUpdatedObservableEmployees(new Date()))
+});
+
+autorun(() => {
+  state.employees = fromPromise(fetchUpdatedObservableEmployees(state.currentDate));
 });
 
 autorun(() => {

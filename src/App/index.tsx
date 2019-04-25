@@ -4,7 +4,7 @@ import { observer, useObserver } from 'mobx-react-lite';
 import styles from './index.module.css';
 import { DatePicker } from '../DatePicker';
 import { TimeBlock } from '../TimeBlock';
-import {Employee, colorMap, Period} from '../models';
+import {Employee, Period} from '../models';
 import { state } from '../store';
 
 const startOfToday: number = new Date().setHours(0, 0, 0, 0);
@@ -18,7 +18,7 @@ function getEmployeeTotalHours(employee: Employee) {
 
   const totalMinutes = totalTime / 1000 / 60;
   const hours = Math.floor(totalMinutes / 60);
-  const minutes = (totalMinutes - hours * 60).toFixed(0);
+  const minutes = (totalMinutes - hours * 60).toFixed(0).padStart(2, '0');
 
   return `${hours} hours ${minutes} minutes`;
 }

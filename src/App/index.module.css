@@ -1,7 +1,8 @@
 .timeline {
   height: 30px;
   width: 100%;
-  background: #e8eaf6;
+  background: linear-gradient(to right, #ffffff, #ffffff 50%, #f7f7f7 50%, #f7f7f7 100%);
+  background-size: calc(100% / 12);
   position: relative;
 }
 

@@ -1,10 +1,9 @@
-import React, { useMemo, useCallback, DragEvent } from 'react';
+import React, { useCallback } from 'react';
 import { DragHandler, useShrinkExtend } from '../useShrinkExpand';
 import styles from './index.module.css';
 import cn from 'classnames';
 import { colorMap, Period } from '../models';
-
-const percentUnit = 100 / 24 / 60 / 60 / 1000;
+import { useMove } from '../useMove';
 
 interface HandleProps {
   left?: boolean;
@@ -50,7 +49,7 @@ function PeriodBase({
     left: 0,
     transform: `translateX(${Math.round(from * unitWidth)}px)`,
     willChange: 'width',
-    background: color
+    background: color,
   };
 
   return (
@@ -123,9 +122,10 @@ export function TimeBlock({
 
   const bottomLimit = 0;
   const upperLimit = millisecondsInDay;
+  const step = millisecondsInFifteenMinutes;
 
   const normalize = useCallback(e => {
-    return roundToStep(clamp(e, bottomLimit, upperLimit), millisecondsInFifteenMinutes);
+    return roundToStep(clamp(e, bottomLimit, upperLimit), step);
   }, [bottomLimit, upperLimit]);
 
   const shiftBreak = period.break && {
@@ -145,37 +145,42 @@ export function TimeBlock({
     {
       pixelStep: unitWidth,
       normalize,
-    });
+    }
+  );
 
-  // If we simultaneously fire events for left and right handles, we get movement event
-  const combinedEvents = useMemo(
-    () => ({
-      onDrag: (e: DragEvent) => {
-        fromDragEvents.onDrag(e);
-        toDragEvents.onDrag(e);
-      },
-      onDragStart: (e: DragEvent) => {
-        fromDragEvents.onDragStart(e);
-        toDragEvents.onDragStart(e);
-      },
-      onDragEnd: (e: DragEvent) => {
-        fromDragEvents.onDragEnd(e);
-        toDragEvents.onDragEnd(e);
-      }
-    }),
-    [fromDragEvents, toDragEvents]
+  function validateMove(diff: number) {
+    return from + diff >= bottomLimit && to + diff <= upperLimit;
+  }
+
+  function normalizeMovementDiff(diff: number) {
+    const min = - from;
+    const max = millisecondsInDay - to;
+    return clamp(diff, min, max);
+  }
+
+  function movePeriod(diff: number) {
+    setTo(normalize(to + diff));
+    setFrom(normalize(from + diff));
+  }
+
+  const [curShift, moveDragEvents, isMoving] = useMove(
+    movePeriod,
+    {
+      pixelStep: unitWidth,
+      validate: validateMove,
+      normalize: normalizeMovementDiff,
+    }
   );
 
   return (
     <PeriodBase
-      from={curFrom}
-      to={curTo}
-      isDragging={isFromDragging || isToDragging}
+      from={curFrom + curShift}
+      to={curTo + curShift}
+      isDragging={isFromDragging || isToDragging || isMoving}
       color={color}
-      title={`${Math.round(curFrom)} - ${Math.round(curTo)}`}
       unitWidth={unitWidth}
     >
-      {shiftBreak && !isToDragging && !isFromDragging && (
+      {shiftBreak && !isToDragging && !isFromDragging && !isMoving && (
         <PeriodBase
           unitWidth={unitWidth}
           from={shiftBreak.from}
@@ -188,7 +193,7 @@ export function TimeBlock({
         <>
           <Handle left {...fromDragEvents} isDragging={isFromDragging} />
           <MoveHandle
-            {...combinedEvents}
+            {...moveDragEvents}
             isDragging={isFromDragging && isToDragging}
           />
           <Handle right {...toDragEvents} isDragging={isToDragging} />

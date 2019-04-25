@@ -1,69 +1,55 @@
-import { Employee } from './models';
+import { Employee, Period, PeriodType } from './models';
+import * as faker from 'faker';
 
-interface Storage {
-  employees: Employee[];
+const types: PeriodType[] = ['booked', 'available', 'booked-on-other-schedule'];
+
+function randomInt(min: number, max: number) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const storage: Storage = {
-  employees: [
-    {
-      id: 1,
-      name: 'Tim Cook',
-      periods: [
-        {
-          id: 1,
-          type: 'booked',
-          editable: true,
-          from: new Date().setHours(9, 0),
-          to: new Date().setHours(18, 0),
-          break: {
-            from: new Date().setHours(13, 0),
-            to: new Date().setHours(14, 0)
-          }
-        }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Mark Zuckerberg',
-      periods: [
-        {
-          id: 3,
-          type: 'booked',
-          editable: true,
-          from: new Date().setHours(10, 0),
-          to: new Date().setHours(19, 0),
-          break: {
-            from: new Date().setHours(14, 0),
-            to: new Date().setHours(15, 0)
-          }
-        }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Jeff Bezos',
-      periods: [
-        {
-          id: 5,
-          type: 'booked',
-          editable: true,
-          from: new Date().setHours(10, 0),
-          to: new Date().setHours(19, 0),
-          break: {
-            from: new Date().setHours(14, 0),
-            to: new Date().setHours(15, 0)
-          }
-        }
-      ]
-    }
-  ]
-};
+let nextId = 0;
+
+function randomPeriodDuringTheDay(date: Date): Period {
+  const clonedDate = new Date(date);
+
+  const from = clonedDate.setHours(randomInt(0, 12), randomInt(0, 3) * 15);
+  let to = date.setHours(randomInt(clonedDate.getHours(), 23), randomInt(0, 3) * 15);
+
+  while (to - from < 1000 * 60 * 60 * 2) {
+    to = date.setHours(randomInt(clonedDate.getHours(), 23), randomInt(0, 3) * 15)
+  }
+
+  return {
+    id: nextId++,
+    type: types[randomInt(0, 2)],
+    editable: true,
+    from,
+    to,
+    break: undefined,
+  }
+}
+
+function randomEmployee(date: Date): Employee {
+  return {
+    id: nextId++,
+    name: faker.name.findName(),
+    periods: [
+      randomPeriodDuringTheDay(date)
+    ]
+  }
+}
 
 export function getDataForDate(date: Date): Promise<string> {
+  const employees: Employee[] = [];
+  for (let i=0; i < randomInt(300, 1000); i++) {
+    employees.push(randomEmployee(date));
+  }
+
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve(JSON.stringify(storage.employees));
+      resolve(JSON.stringify(employees));
     }, 200);
   });
 }
