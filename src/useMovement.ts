@@ -45,6 +45,7 @@ export function useMovement(
   const dragEvents = useMemo(() => {
     const onDragStart = (e: DragEvent) => {
       if (e.dataTransfer) {
+        e.dataTransfer.setData('nothing', '');
         e.dataTransfer.setDragImage(emptyImage, 0, 0);
         e.dataTransfer.effectAllowed = 'move';
       }

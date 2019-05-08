@@ -1,10 +1,9 @@
 import React, { useCallback } from 'react';
-import { DragHandler, useShrinkExtend } from '../useShrinkExpand';
+import { DragHandlers, useShrinkExtend } from '../useShrinkExpand';
 import styles from './index.module.css';
 import cn from 'classnames';
 import { colorMap, Period } from '../models';
 import { useMove } from '../useMove';
-import { useObserver } from 'mobx-react-lite';
 
 interface HandleProps {
   value: number,
@@ -14,29 +13,27 @@ interface HandleProps {
 }
 
 function Handle({ left, right, showHint, value, ...props }: HandleProps) {
-  return useObserver(() => {
-    const hours = Math.floor(value / 1000 / 60 / 60);
-    const minutes = Math.floor((value - (hours * 1000 * 60 * 60)) / 1000 / 60);
-    const paddedMinutes = minutes.toString().padStart(2, '0');
+  const hours = Math.floor(value / 1000 / 60 / 60);
+  const minutes = Math.floor((value - (hours * 1000 * 60 * 60)) / 1000 / 60);
+  const paddedMinutes = minutes.toString().padStart(2, '0');
 
-    return (
-      <div
-        draggable
-        className={cn(styles.handle, {
-          [styles.left]: left,
-          [styles.right]: right
-        })}
-        {...props}
-      >
-        {
-          showHint &&
-            <div className={styles.handleHint}>
-              {`${hours}:${paddedMinutes}`}
-            </div>
-        }
-      </div>
-    );
-  })
+  return (
+    <div
+      draggable
+      className={cn(styles.handle, {
+        [styles.left]: left,
+        [styles.right]: right
+      })}
+      {...props}
+    >
+      {
+        showHint &&
+          <div className={styles.handleHint}>
+            {`${hours}:${paddedMinutes}`}
+          </div>
+      }
+    </div>
+  );
 }
 
 interface PeriodProps {
@@ -74,11 +71,8 @@ function PeriodBase({
   );
 }
 
-interface MoveHandleProps {
+interface MoveHandleProps extends DragHandlers {
   isDragging: boolean;
-  onDrag: DragHandler;
-  onDragStart: DragHandler;
-  onDragEnd: DragHandler;
 }
 
 function MoveHandle({ isDragging, ...props }: MoveHandleProps) {
@@ -112,10 +106,13 @@ interface TimeBlockProps {
   step: number;
   period: Period;
   startOfDay: number;
+  changePeriod: (period: { from: number, to: number, id: string | number }) => void;
 }
 
 function clamp(value: number, min: number, max: number) {
-  return Math.max(Math.min(value, max), min);
+  if (value >= max) return max;
+  if (value <= min) return min;
+  return value;
 }
 
 function roundToStep(value: number, step: number) {
@@ -126,12 +123,35 @@ export function TimeBlock({
   unitWidth,
   startOfDay,
   period,
+  changePeriod
 }: TimeBlockProps) {
   const from = period.from - startOfDay;
   const to = period.to - startOfDay;
 
-  const setFrom = useCallback((v) => period.from = startOfDay + v, [period, startOfDay]);
-  const setTo = useCallback((v) => period.to = startOfDay + v, [period, startOfDay]);
+  function setFrom(value: number) {
+    changePeriod({
+      id: period.id,
+      from: startOfDay + value,
+      to: period.to,
+    });
+  }
+
+  function setTo(value: number) {
+    changePeriod({
+      id: period.id,
+      from: period.from,
+      to: startOfDay + value,
+    });
+  }
+
+  function movePeriod(diff: number) {
+    changePeriod({
+      id: period.id,
+      from: startOfDay + from + diff,
+      to: startOfDay + to + diff,
+    })
+  }
+
   const color = colorMap[period.type];
   const editable = period.editable;
 
@@ -171,11 +191,6 @@ export function TimeBlock({
     const min = - from;
     const max = millisecondsInDay - to;
     return roundToStep(clamp(diff, min, max), step);
-  }
-
-  function movePeriod(diff: number) {
-    setTo(normalize(to + diff));
-    setFrom(normalize(from + diff));
   }
 
   const [curShift, moveDragEvents, isMoving] = useMove(

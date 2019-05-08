@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import Measure, { ContentRect } from 'react-measure';
-import { observer, useObserver } from 'mobx-react-lite';
 import styles from './index.module.css';
 import { DatePicker } from '../DatePicker';
 import { TimeBlock } from '../TimeBlock';
 import {Employee} from '../models';
-import { state } from '../store';
+import useStoreon from 'storeon/react';
 
 const startOfToday: number = new Date().setHours(0, 0, 0, 0);
 
@@ -57,23 +56,34 @@ function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
 }
 
 function EmployeePeriods({ employee, unitWidth }: { employee: Employee, unitWidth: number }): JSX.Element {
-  return useObserver(() =>
-      <>
-        {employee.periods.map(period => (
-            <TimeBlock
-                key={period.id}
-                period={period}
-                startOfDay={startOfToday}
-                step={1000 * 60 * 15}
-                unitWidth={unitWidth}
-            />
-        ))}
-      </>
+  const { dispatch } = useStoreon();
+
+  const changePeriod = useCallback(({ from, to, id }) => {
+    dispatch('timeline/update-period', {
+      employeeId: employee.id,
+      periodId: id,
+      period: { from, to },
+    })
+  }, []);
+
+  return (
+    <>
+      {employee.periods.map(period => (
+          <TimeBlock
+              key={period.id}
+              period={period}
+              startOfDay={startOfToday}
+              step={1000 * 60 * 15}
+              unitWidth={unitWidth}
+              changePeriod={changePeriod}
+          />
+      ))}
+    </>
   );
 }
 
 function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: number }) {
-  return useObserver(() =>
+  return (
     <tr>
       <td className={styles.table__user}>
         <a className={styles.table__userlink} href="http://yandex.ru">
@@ -87,46 +97,43 @@ function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: num
       </td>
       <td>{getEmployeeTotalHours(employee)}</td>
     </tr>
-  )
+  );
 }
 
 function Employees({ employees, unitWidth }: { employees: Employee[], unitWidth: number }) {
-  return useObserver(() =>
+  return (
     <>
       {employees.map(employee => (
         <EmployeeRow key={employee.id} employee={employee} unitWidth={unitWidth} />
       ))}
     </>
   )
-};
+}
 
-function App() {
+export default function App() {
   const [unitWidth, setUnitWidth] = useState(0);
+  const { dispatch, employees, currentDate } = useStoreon('employees', 'currentDate');
 
   return (
     <div>
       <DatePicker
-        value={state.currentDate}
-        setValue={(v: Date) => (state.currentDate = v)}
+        value={currentDate}
+        setValue={(date) => dispatch('timeline/set-date', date)}
       />
       <table className={styles.table}>
         <thead className={styles.table__head}>
-          <tr>
-            <th>User</th>
-            <th>
-              <TimeScale setUnitWidth={setUnitWidth} />
-            </th>
-            <th>G</th>
-          </tr>
+        <tr>
+          <th>User</th>
+          <th>
+            <TimeScale setUnitWidth={setUnitWidth} />
+          </th>
+          <th>G</th>
+        </tr>
         </thead>
         <tbody>
-          {state.employees.state === 'fulfilled' &&
-            <Employees employees={state.employees.value} unitWidth={unitWidth}/>
-          }
+          <Employees employees={employees} unitWidth={unitWidth}/>
         </tbody>
       </table>
     </div>
   );
 }
-
-export default observer(App);

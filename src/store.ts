@@ -1,48 +1,61 @@
-import { autorun, IObservableArray, observable } from 'mobx';
-import { fromPromise, IPromiseBasedObservable } from 'mobx-utils';
 import { getDataForDate } from './backendMockup';
-import { Employee } from './models';
+import createStore, { Store } from 'storeon';
+import { Employee, Period } from './models';
 
 function fetchUpdatedObservableEmployees(date: Date) {
-  return getDataForDate(new Date())
+  return getDataForDate(date)
     .then(data => JSON.parse(data))
-    .then((data: Employee[]) => observable(data));
 }
 
-export const state = observable<{
+interface UpdateAction {
+  employeeId: number,
+  periodId: number,
+  period: {
+    from: number,
+    to: number
+  }
+}
+
+interface StoreState {
+  employees: Employee[],
   currentDate: Date,
-  employees: IPromiseBasedObservable<IObservableArray<Employee>>
-}>({
-  currentDate: new Date(),
-  employees: fromPromise(fetchUpdatedObservableEmployees(new Date()))
-});
+}
 
-autorun(() => {
-  state.employees = fromPromise(fetchUpdatedObservableEmployees(state.currentDate));
-});
+const timeline = (store: Store<StoreState>) => {
+  store.on('@init', () => {
+    const now = new Date();
 
-// autorun(() => {
-//   if (!state.employees.value) return;
-//
-//   const timetable: IObservableArray<Employee> = state.employees.value;
-//
-//   console.group();
-//   timetable.forEach(emp => {
-//     const workingPeriod = emp.periods.find(per => per.type === 'booked');
-//
-//     if (!workingPeriod) {
-//       console.log(`${emp.name} doesn't have booked periods`);
-//       return;
-//     }
-//
-//     const workDayStart = new Date(workingPeriod.from);
-//     const workDayEnd = new Date(workingPeriod.to);
-//
-//     console.log(
-//       `${
-//         emp.name
-//       } is working from ${workDayStart.getHours()}:${workDayStart.getMinutes()} to ${workDayEnd.getHours()}:${workDayEnd.getMinutes()}`
-//     );
-//   });
-//   console.groupEnd();
-// });
+    fetchUpdatedObservableEmployees(now).then(
+      (employees) => store.dispatch('timeline/data', employees)
+    );
+
+    return { currentDate: now, employees: [] };
+  });
+
+  store.on('timeline/data', (state, employees: Employee[]) => ({
+    employees,
+  }));
+
+  store.on('timeline/set-date', (state, date: Date) => ({
+    currentDate: date
+  }));
+
+  store.on('timeline/update-period', ({ employees }, { employeeId, periodId, period }: UpdateAction) => {
+    const targetEmployeeIndex = employees.findIndex((emp: Employee) => emp.id === employeeId);
+    const targetPeriodIndex = employees[targetEmployeeIndex].periods.findIndex((period: Period) => period.id === periodId);
+
+    employees[targetEmployeeIndex].periods[targetPeriodIndex] = {
+      ...employees[targetEmployeeIndex].periods[targetPeriodIndex],
+      ...period
+    };
+
+    return {
+      employees
+    };
+  });
+};
+
+export const store = createStore([
+  timeline,
+  process.env.NODE_ENV !== 'production' && require('storeon/devtools')
+]);
