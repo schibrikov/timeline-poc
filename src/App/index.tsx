@@ -3,7 +3,7 @@ import Measure, { ContentRect } from 'react-measure';
 import styles from './index.module.css';
 import { DatePicker } from '../DatePicker';
 import { TimeBlock } from '../TimeBlock';
-import {Employee} from '../models';
+import { Employee } from '../models';
 import useStoreon from 'storeon/react';
 
 const startOfToday: number = new Date().setHours(0, 0, 0, 0);
@@ -29,9 +29,7 @@ function getUnitWidthForContainerWidth(totalWidth: number) {
 function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
   const measure = (e: ContentRect) => {
     if (e && e.entry) {
-      setUnitWidth(getUnitWidthForContainerWidth(
-        e.entry.width
-      ))
+      setUnitWidth(getUnitWidthForContainerWidth(e.entry.width));
     }
   };
 
@@ -52,37 +50,49 @@ function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
         </div>
       )}
     </Measure>
-  )
+  );
 }
 
-function EmployeePeriods({ employee, unitWidth }: { employee: Employee, unitWidth: number }): JSX.Element {
+function EmployeePeriods({
+  employee,
+  unitWidth
+}: {
+  employee: Employee;
+  unitWidth: number;
+}): JSX.Element {
   const { dispatch } = useStoreon();
 
   const changePeriod = useCallback(({ from, to, id }) => {
     dispatch('timeline/update-period', {
       employeeId: employee.id,
       periodId: id,
-      period: { from, to },
-    })
+      period: { from, to }
+    });
   }, []);
 
   return (
     <>
       {employee.periods.map(period => (
-          <TimeBlock
-              key={period.id}
-              period={period}
-              startOfDay={startOfToday}
-              step={1000 * 60 * 15}
-              unitWidth={unitWidth}
-              changePeriod={changePeriod}
-          />
+        <TimeBlock
+          key={period.id}
+          period={period}
+          startOfDay={startOfToday}
+          step={1000 * 60 * 15}
+          unitWidth={unitWidth}
+          changePeriod={changePeriod}
+        />
       ))}
     </>
   );
 }
 
-function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: number }) {
+function EmployeeRow({
+  employee,
+  unitWidth
+}: {
+  employee: Employee;
+  unitWidth: number;
+}) {
   return (
     <tr>
       <td className={styles.table__user}>
@@ -100,38 +110,51 @@ function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: num
   );
 }
 
-function Employees({ employees, unitWidth }: { employees: Employee[], unitWidth: number }) {
+function Employees({
+  employees,
+  unitWidth
+}: {
+  employees: Employee[];
+  unitWidth: number;
+}) {
   return (
     <>
       {employees.map(employee => (
-        <EmployeeRow key={employee.id} employee={employee} unitWidth={unitWidth} />
+        <EmployeeRow
+          key={employee.id}
+          employee={employee}
+          unitWidth={unitWidth}
+        />
       ))}
     </>
-  )
+  );
 }
 
 export default function App() {
   const [unitWidth, setUnitWidth] = useState(0);
-  const { dispatch, employees, currentDate } = useStoreon('employees', 'currentDate');
+  const { dispatch, employees, currentDate } = useStoreon(
+    'employees',
+    'currentDate'
+  );
 
   return (
     <div>
       <DatePicker
         value={currentDate}
-        setValue={(date) => dispatch('timeline/set-date', date)}
+        setValue={date => dispatch('timeline/set-date', date)}
       />
       <table className={styles.table}>
         <thead className={styles.table__head}>
-        <tr>
-          <th>User</th>
-          <th>
-            <TimeScale setUnitWidth={setUnitWidth} />
-          </th>
-          <th>G</th>
-        </tr>
+          <tr>
+            <th>User</th>
+            <th>
+              <TimeScale setUnitWidth={setUnitWidth} />
+            </th>
+            <th>G</th>
+          </tr>
         </thead>
         <tbody>
-          <Employees employees={employees} unitWidth={unitWidth}/>
+          <Employees employees={employees} unitWidth={unitWidth} />
         </tbody>
       </table>
     </div>

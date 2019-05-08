@@ -5,11 +5,13 @@ type Validator = (value: number) => boolean;
 
 export type DragHandler = (e: DragEvent) => void;
 
-export interface DragHandlers {
-  onDrag: DragHandler;
-  onDragStart: DragHandler;
-  onDragEnd: DragHandler;
-}
+// export interface DragHandlers {
+//   onDrag: DragHandler;
+//   onDragStart: DragHandler;
+//   onDragEnd: DragHandler;
+// }
+
+export type DragHandlers = any;
 
 export interface ShrinkExtendConfig {
   pixelStep: number;
@@ -60,5 +62,4 @@ export function useShrinkExtend(
   }
 
   return [curValue, dragEvents, isDragging];
-
 }

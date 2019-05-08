@@ -21,9 +21,11 @@ function throttle(func: Function, freq: number) {
 }
 
 // @ts-ignore
-function rafThrottle(fn) { // takes a function as parameter
+function rafThrottle(fn) {
+  // takes a function as parameter
   let busy = false;
-  return function() { // returning function (a closure)
+  return function() {
+    // returning function (a closure)
     if (busy) return; // busy? go away!
     busy = true; // hanging "busy" plate on the door
     // @ts-ignore
@@ -33,7 +35,7 @@ function rafThrottle(fn) { // takes a function as parameter
       busy = false;
     });
   };
-};
+}
 
 export function useMovement(
   move: (pixelDifference: number) => void,
@@ -43,31 +45,28 @@ export function useMovement(
   const dragStartX = useRef<number>(0);
 
   const dragEvents = useMemo(() => {
-    const onDragStart = (e: DragEvent) => {
-      if (e.dataTransfer) {
-        e.dataTransfer.setData('nothing', '');
-        e.dataTransfer.setDragImage(emptyImage, 0, 0);
-        e.dataTransfer.effectAllowed = 'move';
-      }
-      setDragging(true);
-      dragStartX.current = e.clientX;
-    };
-
-    const onDrag = rafThrottle((e: DragEvent) => {
+    const handleMove = (e: MouseEvent) => {
       const xDiff = e.clientX - dragStartX.current;
       move(xDiff);
-    });
+    };
 
-    const onDragEnd = (e: DragEvent) => {
-      setDragging(false);
-      const xDiff = e.clientX - dragStartX.current;
-      drop(xDiff);
+    const onMouseDown = (e: MouseEvent) => {
+      setDragging(true);
+      dragStartX.current = e.clientX;
+
+      document.addEventListener('mousemove', handleMove);
+      document.addEventListener('mouseup', function onMouseUp(e: MouseEvent) {
+        document.removeEventListener('mousemove', handleMove);
+        document.removeEventListener('mouseup', onMouseUp);
+
+        setDragging(false);
+        const xDiff = e.clientX - dragStartX.current;
+        drop(xDiff);
+      });
     };
 
     return {
-      onDrag,
-      onDragStart,
-      onDragEnd
+      onMouseDown
     };
   }, [move, drop]);
 

@@ -6,7 +6,7 @@ import { colorMap, Period } from '../models';
 import { useMove } from '../useMove';
 
 interface HandleProps {
-  value: number,
+  value: number;
   left?: boolean;
   right?: boolean;
   showHint: boolean;
@@ -14,24 +14,20 @@ interface HandleProps {
 
 function Handle({ left, right, showHint, value, ...props }: HandleProps) {
   const hours = Math.floor(value / 1000 / 60 / 60);
-  const minutes = Math.floor((value - (hours * 1000 * 60 * 60)) / 1000 / 60);
+  const minutes = Math.floor((value - hours * 1000 * 60 * 60) / 1000 / 60);
   const paddedMinutes = minutes.toString().padStart(2, '0');
 
   return (
     <div
-      draggable
       className={cn(styles.handle, {
         [styles.left]: left,
         [styles.right]: right
       })}
       {...props}
     >
-      {
-        showHint &&
-          <div className={styles.handleHint}>
-            {`${hours}:${paddedMinutes}`}
-          </div>
-      }
+      {showHint && (
+        <div className={styles.handleHint}>{`${hours}:${paddedMinutes}`}</div>
+      )}
     </div>
   );
 }
@@ -61,7 +57,7 @@ function PeriodBase({
     left: 0,
     transform: `translateX(${Math.round(from * unitWidth)}px)`,
     willChange: 'width',
-    background: color,
+    background: color
   };
 
   return (
@@ -77,7 +73,7 @@ interface MoveHandleProps extends DragHandlers {
 
 function MoveHandle({ isDragging, ...props }: MoveHandleProps) {
   return (
-    <div draggable {...props}>
+    <div {...props}>
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="25"
@@ -106,7 +102,11 @@ interface TimeBlockProps {
   step: number;
   period: Period;
   startOfDay: number;
-  changePeriod: (period: { from: number, to: number, id: string | number }) => void;
+  changePeriod: (period: {
+    from: number;
+    to: number;
+    id: string | number;
+  }) => void;
 }
 
 function clamp(value: number, min: number, max: number) {
@@ -132,7 +132,7 @@ export function TimeBlock({
     changePeriod({
       id: period.id,
       from: startOfDay + value,
-      to: period.to,
+      to: period.to
     });
   }
 
@@ -140,7 +140,7 @@ export function TimeBlock({
     changePeriod({
       id: period.id,
       from: period.from,
-      to: startOfDay + value,
+      to: startOfDay + value
     });
   }
 
@@ -148,8 +148,8 @@ export function TimeBlock({
     changePeriod({
       id: period.id,
       from: startOfDay + from + diff,
-      to: startOfDay + to + diff,
-    })
+      to: startOfDay + to + diff
+    });
   }
 
   const color = colorMap[period.type];
@@ -159,13 +159,16 @@ export function TimeBlock({
   const upperLimit = millisecondsInDay;
   const step = millisecondsInFifteenMinutes;
 
-  const normalize = useCallback(e => {
-    return roundToStep(clamp(e, bottomLimit, upperLimit), step);
-  }, [bottomLimit, upperLimit]);
+  const normalize = useCallback(
+    e => {
+      return roundToStep(clamp(e, bottomLimit, upperLimit), step);
+    },
+    [bottomLimit, upperLimit]
+  );
 
   const shiftBreak = period.break && {
     from: period.break.from - startOfDay - from,
-    to: period.break.to - startOfDay - from,
+    to: period.break.to - startOfDay - from
   };
 
   const [curFrom, fromDragEvents, isFromDragging] = useShrinkExtend(
@@ -174,33 +177,26 @@ export function TimeBlock({
     { pixelStep: unitWidth, normalize }
   );
 
-  const [curTo, toDragEvents, isToDragging] = useShrinkExtend(
-    to,
-    setTo,
-    {
-      pixelStep: unitWidth,
-      normalize,
-    }
-  );
+  const [curTo, toDragEvents, isToDragging] = useShrinkExtend(to, setTo, {
+    pixelStep: unitWidth,
+    normalize
+  });
 
   function validateMove(diff: number) {
     return from + diff >= bottomLimit && to + diff <= upperLimit;
   }
 
   function normalizeMovementDiff(diff: number) {
-    const min = - from;
+    const min = -from;
     const max = millisecondsInDay - to;
     return roundToStep(clamp(diff, min, max), step);
   }
 
-  const [curShift, moveDragEvents, isMoving] = useMove(
-    movePeriod,
-    {
-      pixelStep: unitWidth,
-      validate: validateMove,
-      normalize: normalizeMovementDiff,
-    }
-  );
+  const [curShift, moveDragEvents, isMoving] = useMove(movePeriod, {
+    pixelStep: unitWidth,
+    validate: validateMove,
+    normalize: normalizeMovementDiff
+  });
 
   return (
     <PeriodBase
@@ -221,12 +217,22 @@ export function TimeBlock({
       )}
       {editable && (
         <>
-          <Handle value={curFrom + curShift} left {...fromDragEvents} showHint={isFromDragging || isMoving} />
+          <Handle
+            value={curFrom + curShift}
+            left
+            {...fromDragEvents}
+            showHint={isFromDragging || isMoving}
+          />
           <MoveHandle
             {...moveDragEvents}
             isDragging={isFromDragging && isToDragging}
           />
-          <Handle value={curTo + curShift} right {...toDragEvents} showHint={isToDragging || isMoving} />
+          <Handle
+            value={curTo + curShift}
+            right
+            {...toDragEvents}
+            showHint={isToDragging || isMoving}
+          />
         </>
       )}
     </PeriodBase>
