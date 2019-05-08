@@ -1,10 +1,10 @@
-import React, { useState, useCallback } from 'react';
-import Measure from 'react-measure';
+import React, { useState } from 'react';
+import Measure, { ContentRect } from 'react-measure';
 import { observer, useObserver } from 'mobx-react-lite';
 import styles from './index.module.css';
 import { DatePicker } from '../DatePicker';
 import { TimeBlock } from '../TimeBlock';
-import {Employee, Period} from '../models';
+import {Employee} from '../models';
 import { state } from '../store';
 
 const startOfToday: number = new Date().setHours(0, 0, 0, 0);
@@ -27,14 +27,14 @@ function getUnitWidthForContainerWidth(totalWidth: number) {
   return totalWidth / 24 / 60 / 60 / 1000;
 }
 
-const TimeScale = React.memo(function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
-  const measure = useCallback((e) => {
+function TimeScale({ setUnitWidth }: { setUnitWidth: (arg: number) => void }) {
+  const measure = (e: ContentRect) => {
     if (e && e.entry) {
       setUnitWidth(getUnitWidthForContainerWidth(
         e.entry.width
       ))
     }
-  }, []);
+  };
 
   const hours: string[] = [];
   for (let i = 0; i < 24; i++) {
@@ -54,12 +54,12 @@ const TimeScale = React.memo(function TimeScale({ setUnitWidth }: { setUnitWidth
       )}
     </Measure>
   )
-});
+}
 
-function EmployeePeriods({ periods, unitWidth }: { periods: Period[], unitWidth: number }): JSX.Element {
+function EmployeePeriods({ employee, unitWidth }: { employee: Employee, unitWidth: number }): JSX.Element {
   return useObserver(() =>
       <>
-        {periods.map(period => (
+        {employee.periods.map(period => (
             <TimeBlock
                 key={period.id}
                 period={period}
@@ -82,7 +82,7 @@ function EmployeeRow({employee, unitWidth}: { employee: Employee, unitWidth: num
       </td>
       <td>
         <div className={styles.timeline}>
-          <EmployeePeriods periods={employee.periods} unitWidth={unitWidth} />
+          <EmployeePeriods employee={employee} unitWidth={unitWidth} />
         </div>
       </td>
       <td>{getEmployeeTotalHours(employee)}</td>
@@ -98,7 +98,7 @@ function Employees({ employees, unitWidth }: { employees: Employee[], unitWidth:
       ))}
     </>
   )
-}
+};
 
 function App() {
   const [unitWidth, setUnitWidth] = useState(0);

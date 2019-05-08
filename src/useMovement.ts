@@ -20,6 +20,21 @@ function throttle(func: Function, freq: number) {
   };
 }
 
+// @ts-ignore
+function rafThrottle(fn) { // takes a function as parameter
+  let busy = false;
+  return function() { // returning function (a closure)
+    if (busy) return; // busy? go away!
+    busy = true; // hanging "busy" plate on the door
+    // @ts-ignore
+    fn.apply(this, arguments); // calling function
+    // using rAF to remove the "busy" plate, when browser is ready
+    window.requestAnimationFrame(function() {
+      busy = false;
+    });
+  };
+};
+
 export function useMovement(
   move: (pixelDifference: number) => void,
   drop: (pixelDifference: number) => void
@@ -37,10 +52,10 @@ export function useMovement(
       dragStartX.current = e.clientX;
     };
 
-    const onDrag = throttle((e: DragEvent) => {
+    const onDrag = rafThrottle((e: DragEvent) => {
       const xDiff = e.clientX - dragStartX.current;
       move(xDiff);
-    }, throttleFreq);
+    });
 
     const onDragEnd = (e: DragEvent) => {
       setDragging(false);

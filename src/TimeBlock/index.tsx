@@ -4,24 +4,39 @@ import styles from './index.module.css';
 import cn from 'classnames';
 import { colorMap, Period } from '../models';
 import { useMove } from '../useMove';
+import { useObserver } from 'mobx-react-lite';
 
 interface HandleProps {
+  value: number,
   left?: boolean;
   right?: boolean;
-  isDragging: boolean;
+  showHint: boolean;
 }
 
-function Handle({ left, right, isDragging, ...props }: HandleProps) {
-  return (
-    <div
-      draggable
-      className={cn(styles.handle, {
-        [styles.left]: left,
-        [styles.right]: right
-      })}
-      {...props}
-    />
-  );
+function Handle({ left, right, showHint, value, ...props }: HandleProps) {
+  return useObserver(() => {
+    const hours = Math.floor(value / 1000 / 60 / 60);
+    const minutes = Math.floor((value - (hours * 1000 * 60 * 60)) / 1000 / 60);
+    const paddedMinutes = minutes.toString().padStart(2, '0');
+
+    return (
+      <div
+        draggable
+        className={cn(styles.handle, {
+          [styles.left]: left,
+          [styles.right]: right
+        })}
+        {...props}
+      >
+        {
+          showHint &&
+            <div className={styles.handleHint}>
+              {`${hours}:${paddedMinutes}`}
+            </div>
+        }
+      </div>
+    );
+  })
 }
 
 interface PeriodProps {
@@ -155,7 +170,7 @@ export function TimeBlock({
   function normalizeMovementDiff(diff: number) {
     const min = - from;
     const max = millisecondsInDay - to;
-    return clamp(diff, min, max);
+    return roundToStep(clamp(diff, min, max), step);
   }
 
   function movePeriod(diff: number) {
@@ -191,12 +206,12 @@ export function TimeBlock({
       )}
       {editable && (
         <>
-          <Handle left {...fromDragEvents} isDragging={isFromDragging} />
+          <Handle value={curFrom + curShift} left {...fromDragEvents} showHint={isFromDragging || isMoving} />
           <MoveHandle
             {...moveDragEvents}
             isDragging={isFromDragging && isToDragging}
           />
-          <Handle right {...toDragEvents} isDragging={isToDragging} />
+          <Handle value={curTo + curShift} right {...toDragEvents} showHint={isToDragging || isMoving} />
         </>
       )}
     </PeriodBase>

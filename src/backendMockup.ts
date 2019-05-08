@@ -23,11 +23,14 @@ function randomPeriodDuringTheDay(date: Date): Period {
 
   return {
     id: nextId++,
-    type: types[randomInt(0, 2)],
+    type: types[0],
     editable: true,
     from,
     to,
-    break: undefined,
+    break: {
+      from: from + 60 * 60 * 1000,
+      to: from + 4 * 60 * 60 * 1000,
+    },
   }
 }
 
