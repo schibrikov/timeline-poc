@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useMovement } from './useMovement';
-import { DragHandlers, ShrinkExtendConfig } from './useShrinkExpand';
+import { MovementEventHandlers, ShrinkExtendConfig } from './useShrinkExpand';
 
 export function useMove(
   setTotalShift: (arg: number) => void,
   config: ShrinkExtendConfig
-): [number, DragHandlers, boolean] {
+): [number, MovementEventHandlers, boolean] {
   const {
     pixelStep = 1,
     normalize = (n: number) => n,

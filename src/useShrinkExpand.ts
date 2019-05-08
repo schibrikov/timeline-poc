@@ -1,17 +1,12 @@
-import { useState, DragEvent } from 'react';
+import { useState, MouseEvent } from 'react';
 import { useMovement } from './useMovement';
 
 type Validator = (value: number) => boolean;
 
-export type DragHandler = (e: DragEvent) => void;
 
-// export interface DragHandlers {
-//   onDrag: DragHandler;
-//   onDragStart: DragHandler;
-//   onDragEnd: DragHandler;
-// }
-
-export type DragHandlers = any;
+export interface MovementEventHandlers {
+  onMouseDown: (e: MouseEvent) => void
+}
 
 export interface ShrinkExtendConfig {
   pixelStep: number;
@@ -25,7 +20,7 @@ export function useShrinkExtend(
   value: number,
   setValue: (arg: number) => void,
   config: ShrinkExtendConfig
-): [number, DragHandlers, boolean] {
+): [number, MovementEventHandlers, boolean] {
   const {
     pixelStep = 1,
     normalize = (n: number) => n,

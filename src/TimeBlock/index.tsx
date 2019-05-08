@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { DragHandlers, useShrinkExtend } from '../useShrinkExpand';
+import { MovementEventHandlers, useShrinkExtend } from '../useShrinkExpand';
 import styles from './index.module.css';
 import cn from 'classnames';
 import { colorMap, Period } from '../models';
@@ -67,7 +67,7 @@ function PeriodBase({
   );
 }
 
-interface MoveHandleProps extends DragHandlers {
+interface MoveHandleProps extends MovementEventHandlers {
   isDragging: boolean;
 }
 

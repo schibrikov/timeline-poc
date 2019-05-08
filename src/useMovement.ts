@@ -1,5 +1,5 @@
-import { DragEvent, useMemo, useRef, useState } from 'react';
-import { DragHandlers } from './useShrinkExpand';
+import { useMemo, useRef, useState, MouseEvent } from 'react';
+import { MovementEventHandlers } from './useShrinkExpand';
 
 const emptyImage = new Image();
 emptyImage.src =
@@ -40,12 +40,12 @@ function rafThrottle(fn) {
 export function useMovement(
   move: (pixelDifference: number) => void,
   drop: (pixelDifference: number) => void
-): [DragHandlers, boolean] {
+): [MovementEventHandlers, boolean] {
   const [isDragging, setDragging] = useState<boolean>(false);
   const dragStartX = useRef<number>(0);
 
   const dragEvents = useMemo(() => {
-    const handleMove = (e: MouseEvent) => {
+    const handleMove = (e: { clientX: number }) => {
       const xDiff = e.clientX - dragStartX.current;
       move(xDiff);
     };
@@ -55,7 +55,7 @@ export function useMovement(
       dragStartX.current = e.clientX;
 
       document.addEventListener('mousemove', handleMove);
-      document.addEventListener('mouseup', function onMouseUp(e: MouseEvent) {
+      document.addEventListener('mouseup', function onMouseUp(e: { clientX: number }) {
         document.removeEventListener('mousemove', handleMove);
         document.removeEventListener('mouseup', onMouseUp);
 
